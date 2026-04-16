@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 방패 본체 -->
+    <path
+        android:fillColor="#1565C0"
+        android:pathData="M54,20 L26,32 L26,54 C26,72 38,88 54,92 C70,88 82,72 82,54 L82,32 Z" />
+
+    <!-- 방패 하이라이트 -->
+    <path
+        android:fillColor="#42A5F5"
+        android:pathData="M54,20 L54,92 C38,88 26,72 26,54 L26,32 Z" />
+
+    <!-- 체크 마크 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeWidth="0"
+        android:pathData="M46,58 L40,52 L37,55 L46,64 L70,40 L67,37 Z" />
+</vector>

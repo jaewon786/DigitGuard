@@ -1,6 +1,5 @@
 package com.digitguard.app.di
 
-import com.digitguard.app.BuildConfig
 import com.digitguard.app.data.remote.api.*
 import dagger.Module
 import dagger.Provides
@@ -17,7 +16,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "http://10.0.2.2:3000/api/v1/"
+    private val BASE_URL: String = com.digitguard.app.BuildConfig.BASE_URL
 
     @Provides
     @Singleton
@@ -27,7 +26,7 @@ object NetworkModule {
             .readTimeout(15, TimeUnit.SECONDS)
             .addInterceptor(
                 HttpLoggingInterceptor().apply {
-                    level = if (BuildConfig.DEBUG) {
+                    level = if (com.digitguard.app.BuildConfig.DEBUG) {
                         HttpLoggingInterceptor.Level.BODY
                     } else {
                         HttpLoggingInterceptor.Level.NONE
