@@ -1,0 +1,258 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "DigitGuard API",
+    "version": "1.0.0",
+    "description": "디지털 취약 계층 보호 앱 백엔드 API"
+  },
+  "servers": [
+    { "url": "http://localhost:3000/api/v1", "description": "개발 서버" }
+  ],
+  "tags": [
+    { "name": "인증", "description": "회원가입, 로그인, 계정 관리" },
+    { "name": "보호자", "description": "보호자-피보호자 연결 및 관리" },
+    { "name": "위험 감지", "description": "텍스트 분석 및 위험 패턴 관리" },
+    { "name": "앱 관리", "description": "앱 설치 검사 및 승인" },
+    { "name": "URL 검사", "description": "URL 안전성 검증" },
+    { "name": "교육", "description": "교육 콘텐츠 관리" },
+    { "name": "디바이스", "description": "FCM 토큰 관리" },
+    { "name": "화이트리스트", "description": "허용 앱 목록 관리" }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["인증"], "summary": "회원가입",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["name", "role"],
+          "properties": {
+            "name": { "type": "string", "example": "홍길동", "maxLength": 50 },
+            "phone": { "type": "string", "example": "010-1234-5678" },
+            "role": { "type": "string", "enum": ["protected", "guardian"] },
+            "firebaseUid": { "type": "string" }
+          }
+        }}}},
+        "responses": { "201": { "description": "회원가입 완료" }, "400": { "description": "필수 필드 누락/유효성 오류" }, "409": { "description": "중복 가입" } }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["인증"], "summary": "로그인",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["firebaseUid"],
+          "properties": { "firebaseUid": { "type": "string" } }
+        }}}},
+        "responses": { "200": { "description": "로그인 성공" }, "404": { "description": "미등록 사용자" } }
+      }
+    },
+    "/auth/account": {
+      "delete": {
+        "tags": ["인증"], "summary": "계정 삭제 (본인만)",
+        "security": [{ "bearer": [] }],
+        "responses": { "200": { "description": "삭제 완료" }, "401": { "description": "인증 필요" } }
+      }
+    },
+    "/guardian/link": {
+      "post": {
+        "tags": ["보호자"], "summary": "보호자 연결 요청 (코드 발급)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["guardianId"],
+          "properties": { "guardianId": { "type": "string" }, "protectedId": { "type": "string" } }
+        }}}},
+        "responses": { "201": { "description": "연결 코드 발급 또는 직접 연결 요청" } }
+      }
+    },
+    "/guardian/link/{id}/accept": {
+      "put": {
+        "tags": ["보호자"], "summary": "연결 요청 수락",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "수락 완료" }, "400": { "description": "이미 처리된 링크" }, "404": { "description": "링크 없음" } }
+      }
+    },
+    "/guardian/link/accept-by-code": {
+      "post": {
+        "tags": ["보호자"], "summary": "연결 코드로 수락",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["code", "protectedId"],
+          "properties": { "code": { "type": "string", "example": "A1B2C3" }, "protectedId": { "type": "string" } }
+        }}}},
+        "responses": { "200": { "description": "연결 완료" }, "404": { "description": "유효하지 않은 코드" } }
+      }
+    },
+    "/guardian/protected-users": {
+      "get": {
+        "tags": ["보호자"], "summary": "피보호자 목록 조회",
+        "parameters": [{ "name": "guardianId", "in": "query", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "피보호자 목록" } }
+      }
+    },
+    "/guardian/dashboard/{userId}": {
+      "get": {
+        "tags": ["보호자"], "summary": "피보호자 보호 현황 대시보드",
+        "parameters": [{ "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "대시보드 데이터" }, "404": { "description": "사용자 없음" } }
+      }
+    },
+    "/threats/analyze": {
+      "post": {
+        "tags": ["위험 감지"], "summary": "텍스트 위험도 분석",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["text"],
+          "properties": {
+            "text": { "type": "string", "example": "귀하의 핸드폰이 바이러스에 감염되었습니다" },
+            "sourcePackage": { "type": "string" },
+            "userId": { "type": "string" }
+          }
+        }}}},
+        "responses": { "200": { "description": "분석 결과", "content": { "application/json": { "schema": {
+          "type": "object",
+          "properties": {
+            "threatLevel": { "type": "string", "enum": ["none","low","medium","high"] },
+            "riskScore": { "type": "integer" },
+            "category": { "type": "string" },
+            "matchedPatterns": { "type": "array", "items": { "type": "object" } },
+            "recommendation": { "type": "string" },
+            "shouldNotifyGuardian": { "type": "boolean" }
+          }
+        }}}}}
+      }
+    },
+    "/threats/log": {
+      "post": {
+        "tags": ["위험 감지"], "summary": "위험 감지 로그 배치 업로드",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["logs"],
+          "properties": { "logs": { "type": "array", "items": { "type": "object",
+            "properties": {
+              "user_id": { "type": "string" },
+              "threat_type": { "type": "string" },
+              "threat_level": { "type": "string" }
+            }
+          }}}
+        }}}},
+        "responses": { "200": { "description": "저장 결과" } }
+      }
+    },
+    "/threats/patterns/sync": {
+      "get": {
+        "tags": ["위험 감지"], "summary": "최신 위험 패턴 동기화",
+        "responses": { "200": { "description": "패턴 목록" } }
+      }
+    },
+    "/threats/history/{userId}": {
+      "get": {
+        "tags": ["위험 감지"], "summary": "위험 감지 이력 조회",
+        "parameters": [{ "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "이력 목록" } }
+      }
+    },
+    "/apps/check": {
+      "post": {
+        "tags": ["앱 관리"], "summary": "앱 안전성 검사",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["packageName"],
+          "properties": { "packageName": { "type": "string", "example": "com.example.app" } }
+        }}}},
+        "responses": { "200": { "description": "검사 결과" } }
+      }
+    },
+    "/apps/install-request": {
+      "post": {
+        "tags": ["앱 관리"], "summary": "설치 승인 요청",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["protectedId", "packageName"],
+          "properties": { "protectedId": { "type": "string" }, "packageName": { "type": "string" }, "appName": { "type": "string" } }
+        }}}},
+        "responses": { "201": { "description": "요청 생성" } }
+      }
+    },
+    "/apps/install-request/{id}": {
+      "put": {
+        "tags": ["앱 관리"], "summary": "설치 승인/거부 응답",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["decision"],
+          "properties": { "decision": { "type": "string", "enum": ["approved", "rejected"] } }
+        }}}},
+        "responses": { "200": { "description": "처리 완료" }, "404": { "description": "요청 없음" } }
+      }
+    },
+    "/apps/whitelist/{userId}": {
+      "get": {
+        "tags": ["앱 관리"], "summary": "승인된 앱 목록",
+        "parameters": [{ "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "화이트리스트" } }
+      }
+    },
+    "/urls/check": {
+      "post": {
+        "tags": ["URL 검사"], "summary": "URL 안전성 검사",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["url"],
+          "properties": { "url": { "type": "string", "example": "https://example.com" } }
+        }}}},
+        "responses": { "200": { "description": "검사 결과" } }
+      }
+    },
+    "/education/contents": {
+      "get": {
+        "tags": ["교육"], "summary": "교육 콘텐츠 목록",
+        "responses": { "200": { "description": "콘텐츠 목록 (steps 미포함)" } }
+      }
+    },
+    "/education/contents/{id}": {
+      "get": {
+        "tags": ["교육"], "summary": "교육 콘텐츠 상세",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "상세 (steps 포함)" }, "404": { "description": "콘텐츠 없음" } }
+      }
+    },
+    "/devices/fcm-token": {
+      "post": {
+        "tags": ["디바이스"], "summary": "FCM 토큰 등록/갱신",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["userId", "fcmToken"],
+          "properties": { "userId": { "type": "string" }, "fcmToken": { "type": "string" } }
+        }}}},
+        "responses": { "200": { "description": "등록 완료" } }
+      },
+      "delete": {
+        "tags": ["디바이스"], "summary": "FCM 토큰 삭제",
+        "requestBody": { "content": { "application/json": { "schema": {
+          "type": "object", "properties": { "userId": { "type": "string" } }
+        }}}},
+        "responses": { "200": { "description": "삭제 완료" } }
+      }
+    },
+    "/whitelist/{userId}": {
+      "get": {
+        "tags": ["화이트리스트"], "summary": "허용 앱 목록 조회",
+        "parameters": [{ "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "화이트리스트" } }
+      },
+      "post": {
+        "tags": ["화이트리스트"], "summary": "허용 앱 추가",
+        "parameters": [{ "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["packageName"],
+          "properties": { "packageName": { "type": "string" }, "appName": { "type": "string" } }
+        }}}},
+        "responses": { "201": { "description": "추가 완료" }, "409": { "description": "중복" } }
+      }
+    },
+    "/whitelist/{userId}/{packageName}": {
+      "delete": {
+        "tags": ["화이트리스트"], "summary": "허용 앱 제거",
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "packageName", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "제거 완료" }, "404": { "description": "없는 앱" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": { "type": "http", "scheme": "bearer", "bearerFormat": "Firebase ID Token" }
+    }
+  }
+}
