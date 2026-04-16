@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">디짓가드</string>
+    <string name="accessibility_service_description">허위 광고 및 의심스러운 팝업을 감지하여 사용자를 보호합니다.</string>
+
+    <!-- 하단 탭 -->
+    <string name="tab_home">홈</string>
+    <string name="tab_education">배우기</string>
+    <string name="tab_settings">설정</string>
+
+    <!-- 홈 화면 -->
+    <string name="status_safe">안전합니다</string>
+    <string name="status_warning">주의가 필요합니다</string>
+    <string name="sos_button">긴급 연락</string>
+
+    <!-- 경고 오버레이 -->
+    <string name="warning_title">주의하세요!</string>
+    <string name="warning_message">이것은 거짓 광고입니다.\n절대 설치하지 마세요.</string>
+    <string name="warning_dismiss">무시하고 돌아가기</string>
+    <string name="warning_call_guardian">보호자에게 전화하기</string>
+</resources>
